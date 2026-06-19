@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Recomendador de Carrera y especializaciones AI</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            max-width: 500px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        form {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin-top: 18px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            margin-top: 6px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 25px;
+            padding: 14px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        #resultado {
+            display: none;
+            margin-top: 25px;
+            padding: 25px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .salario {
+            font-size: 2.2em;
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .puesto {
+            font-size: 1.3em;
+            color: #007bff;
+            margin: 10px 0;
+        }
+
+        .recomendacion {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            line-height: 1.6;
+            white-space: pre-line;
+        }
+
+        .error {
+            color: #dc3545;
+            text-align: center;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Recomendador de Carrera</h1>
+
+    <form id="formulario">
+        <label>Años de experiencia</label>
+        <input type="number" name="experience_years" min="0" max="30" value="3" required>
+
+        <label>Nivel educativo</label>
+        <select name="education_required" required>
+            <option value="" disabled selected>Selecciona...</option>
+            <option value="Diploma">Diploma</option>
+            <option value="Bootcamp">Bootcamp</option>
+            <option value="Bachelor">Bachelor</option>
+            <option value="Master" selected>Master</option>
+            <option value="PhD">PhD</option>
+        </select>
+
+
+
+        <label>Especialización en IA</label>
+        <select name="ai_specialization" required>
+            <option value="" disabled selected>Selecciona...</option>
+            <option value="Analytics">Analytics</option>
+            <option value="Computer Vision">Computer Vision</option>
+            <option value="Forecasting">Forecasting</option>
+            <option value="Generative AI">Generative AI</option>
+            <option value="LLM" selected>LLM</option>
+            <option value="Reinforcement Learning">Reinforcement Learning</option>
+        </select>
+
+        <button type="submit">🚀 Obtener mi recomendación</button>
+    </form>
+
+    <div id="resultado">
+        <div class="salario" id="salario"></div>
+        <div class="puesto" id="puesto"></div>
+        <div class="recomendacion" id="recomendaciones"></div>
+    </div>
+
+    <div class="error" id="error"></div>
+
+    <script>
+        document.getElementById('formulario').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const form = new FormData(e.target);
+            const datos = {
+                experience_years: parseInt(form.get('experience_years')),
+                education_required: form.get('education_required'),
+                ai_specialization: form.get('ai_specialization')
+            };
+
+            // Limpiar errores previos
+            document.getElementById('error').textContent = '';
+
+            try {
+                const res = await fetch('/recomendar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(datos)
+                });
+
+                const result = await res.json();
+
+                if (result.success) {
+                    const data = result.data;
+                    document.getElementById('salario').textContent =
+                        '$' + data.salario_estimado_usd.toLocaleString() + ' USD';
+                    document.getElementById('puesto').textContent =
+                        '🎯 ' + data.puesto_recomendado;
+                    document.getElementById('recomendaciones').textContent =
+                        data.recomendaciones.mensaje_completo;
+                    document.getElementById('resultado').style.display = 'block';
+                } else {
+                    document.getElementById('error').textContent =
+                        'Error: ' + result.error;
+                }
+            } catch (err) {
+                document.getElementById('error').textContent =
+                    'Error de conexión: ' + err.message;
+            }
+        });
+    </script>
+</body>
+
+</html>
