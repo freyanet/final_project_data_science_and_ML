@@ -179,48 +179,47 @@ st.divider()
 
 # Sidebar con el formulario
 with st.sidebar:
-    st.header("📋 Tu perfil profesional")
+    st.header("📋 Your professional profile")
 
-    exp_years = st.slider("Años de experiencia", 0, 20, 3)
+    exp_years = st.slider("Experience years", 0, 20, 3)
 
     education = st.selectbox(
-        "Nivel educativo",
+        "Education level",
         ["Diploma", "Bootcamp", "Bachelor", "Master", "PhD"]
     )
 
     specialization = st.selectbox(
-        "Especialización en IA",
+        "AI specialization",
         sorted(df_model["ai_specialization"].unique())
     )
 
     work_mode = st.selectbox(
-        "Modalidad de trabajo",
+        "Work mode",
         sorted(df_model["work_mode"].unique())
     )
 
     industry = st.selectbox(
-        "Industria",
+        "Industry",
         sorted(df_model["industry"].unique())
     )
 
     country = st.selectbox(
-        "País",
+        "Country",
         sorted(df_model["country"].unique()),
         index=sorted(df_model["country"].unique()).index("Spain")
         if "Spain" in df_model["country"].unique() else 0
     )
 
-    weekly_hours = st.slider("Horas semanales", 30, 60, 40)
+    weekly_hours = st.slider("Weekly hours", 30, 60, 40)
 
     st.divider()
 
-    top_n = st.slider("Número de recomendaciones", 1, 5, 3)
+    top_n = st.slider("Number of recomendations", 1, 5, 3)
 
-    peso_cb = st.slider("Peso perfil (content-based)", 0.0, 1.0, 0.6, 0.05)
-    peso_cf = 1.0 - peso_cb
-    st.caption(f"Peso colaborativo: {peso_cf:.2f}")
+    peso_cb = 1.00
+    peso_cf = 1.00
 
-    buscar = st.button("🔍 Recomendar", type="primary", use_container_width=True)
+    buscar = st.button("🔍 Recomend", type="primary", use_container_width=True)
 
 # ─── Resultados ───────────────────────────────────────────────────────────────
 if buscar:
@@ -239,87 +238,96 @@ if buscar:
                                      peso_contenido=peso_cb,
                                      peso_colaborativo=peso_cf)
 
-    st.subheader(f"🎯 Top {top_n} recomendaciones para tu perfil")
+    st.subheader(f"🎯 Top {top_n} recomendations for your profile")
 
     for i, rec in enumerate(recomendaciones, 1):
         gap = rec["skill_gap"]
         with st.expander(
-            f"#{i}  **{rec['job_role']}** — 💰 ${rec['salary_usd']:,.0f}/año  |  Match: {rec['match_score_pct']}%",
+            f"#{i}  **{rec['job_role']}** — 💰 ${rec['salary_usd']:,.0f}/año",
             expanded=(i == 1)
         ):
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3 = st.columns(3,vertical_alignment="center")
+
 
             with col1:
-                st.metric("💵 Salario estimado", f"${rec['salary_usd']:,.0f}")
-                st.metric("📊 Percentil salarial", f"{int(rec['salary_percentile'])}°")
-                st.metric("🌍 País", rec["country"])
+                st.metric("💵 Estimated Salary", f"${rec['salary_usd']:,.0f}")
+                st.metric("📊 Salary percentile", f"{int(rec['salary_percentile'])}°")
+                st.metric("🌍 Country", rec["country"])
 
             with col2:
-                st.metric("🏢 Empresa", rec["company_size"])
-                st.metric("⚡ Modo de trabajo", rec["work_mode"])
-                st.metric("🤖 Adopción IA empresa", f"{int(rec['ai_adoption_score'])}%")
+                st.metric("🏢 Company size", rec["company_size"])
+                st.metric("⚡ Work mode", rec["work_mode"])
+                st.metric("💻 Automation risk", f"{int(rec['automation_risk'])}%")
 
             with col3:
-                st.metric("📈 Crecimiento carrera", f"{int(rec['career_growth_score'])}%")
+                st.metric("📈 Career growth", f"{int(rec['career_growth_score'])}%")
                 st.metric("⚖️ Work-Life Balance", f"{int(rec['work_life_balance_score'])}%")
-                st.metric("😊 Satisfacción", f"{int(rec['employee_satisfaction'])}%")
+                st.markdown("""
+                                <style>
+                                    div[data-baseweb="tooltip"] {
+                                        width: 280px !important;
+                                        white-space: normal !important;
+                                        word-wrap: break-word !important;
+                                        text-align: justify !important;
+                                    }
+                                </style>
+                            """, unsafe_allow_html=True)
+                st.metric("😊 Employee satisfaction", f"{int(rec['employee_satisfaction'])}%", help="This percentage indicates the satisfaction that employees usually have in this type of role, taking into account all the metrics mentioned.")
 
             st.divider()
-            st.markdown("**🔍 Skill Gap — qué te separa de este puesto:**")
+            st.markdown("**🔍 Skill Gap — what separates you from this position:**")
+            
 
-            g1, g2, g3, g4 = st.columns(4)
+            g1, g2, g3, g4= st.columns(4)
 
             with g1:
                 exp_gap = gap["experience_gap_years"]
                 color = "gap-ok" if exp_gap == 0 else "gap-bad"
-                label = "✅ Suficiente" if exp_gap == 0 else f"⚠️ Te faltan {exp_gap:.0f} años"
-                st.markdown(f"<p class='metric-label'>Experiencia</p><p class='{color} metric-value'>{label}</p>",
+                label = "✅ Enough" if exp_gap == 0 else f"⚠️ You need {exp_gap:.0f} years"
+                st.markdown(f"<p class='metric-label'>Experience</p><p class='{color} metric-value'>{label}</p>",
                             unsafe_allow_html=True)
 
             with g2:
                 spec_ok = gap["specialization_match"]
                 color = "gap-ok" if spec_ok else "gap-bad"
-                label = "✅ Match" if spec_ok else f"⚠️ Necesitas: {gap.get('specialization_needed', '')}"
-                st.markdown(f"<p class='metric-label'>Especialización</p><p class='{color} metric-value'>{label}</p>",
+                label = "✅ Match" if spec_ok else f"⚠️ You need: {gap.get('specialization_needed', '')}"
+                st.markdown(f"<p class='metric-label'>Specialization</p><p class='{color} metric-value'>{label}</p>",
                             unsafe_allow_html=True)
 
             with g3:
                 edu_gap = gap["education_gap"]
                 color = "gap-ok" if edu_gap == 0 else "gap-bad"
-                label = "✅ OK" if edu_gap == 0 else f"⚠️ Necesitas: {gap.get('education_needed', '')}"
-                st.markdown(f"<p class='metric-label'>Educación</p><p class='{color} metric-value'>{label}</p>",
+                label = "✅ OK" if edu_gap == 0 else f"⚠️ You need: {gap.get('education_needed', '')}"
+                st.markdown(f"<p class='metric-label'>Education</p><p class='{color} metric-value'>{label}</p>",
                             unsafe_allow_html=True)
 
             with g4:
                 wm_ok = gap["work_mode_match"]
                 color = "gap-ok" if wm_ok else "gap-bad"
-                label = "✅ Coincide" if wm_ok else "⚠️ Modalidad distinta"
+                label = "✅ Match" if wm_ok else "⚠️ Different work mode"
                 st.markdown(f"<p class='metric-label'>Work Mode</p><p class='{color} metric-value'>{label}</p>",
                             unsafe_allow_html=True)
-
+                
+    
             st.divider()
             st.markdown(
-                f"<small>Content score: **{rec['content_score']}%** &nbsp;|&nbsp; "
-                f"Collab score: **{rec['collab_score']}%** &nbsp;|&nbsp; "
-                f"Demanda skill: **{int(rec['skill_demand_score'])}** &nbsp;|&nbsp; "
-                f"Riesgo automatización: **{int(rec['automation_risk'])}%**</small>",
-                unsafe_allow_html=True
-            )
+                f"AI adoption in the company: **{int(rec['ai_adoption_score'])}%** &nbsp; ")
+            
 
 else:
-    st.info("👈 Rellena tu perfil en el panel izquierdo y pulsa **Recomendar** para ver tus resultados.")
+    st.info("👈 Fill out your profile in the left panel and click **Recommend** to see your results.")
 
     # Mostrar estadísticas generales mientras se espera
-    st.subheader("📊 Resumen del mercado laboral (2022–2026)")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Registros analizados", f"{len(df_model):,}")
-    c2.metric("Roles únicos", df_model["job_role"].nunique())
-    c3.metric("Países", df_model["country"].nunique())
-    c4.metric("Salario medio", f"${df_model['salary_usd'].mean():,.0f}")
+    st.subheader("📊 Labor market summary (2022–2026)")
+    st.warning("The recommendations are based on surveys conducted between 2022 and 2026 and do not guarantee hiring for the recommended roles or the salary shown.")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Records analyzed", f"{len(df_model):,}")
+    c2.metric("Unique roles", df_model["job_role"].nunique())
+    c3.metric("Median salary", f"${df_model['salary_usd'].mean():,.0f}")
 
-    col_a, col_b = st.columns(2)
+    col_a, col_b, colc = st.columns(3)
     with col_a:
-        st.markdown("**Top 10 puestos mejor pagados (mediana)**")
+        st.markdown("**Top 10 highest paying jobs (median)**")
         top_roles = (
             df_model.groupby("job_role")["salary_usd"]
             .median()
@@ -327,12 +335,18 @@ else:
             .head(10)
             .reset_index()
         )
-        top_roles.columns = ["Rol", "Salario mediano (USD)"]
-        top_roles["Salario mediano (USD)"] = top_roles["Salario mediano (USD)"].apply(lambda x: f"${x:,.0f}")
+        top_roles.columns = ["Rol", "Median salary (USD)"]
+        top_roles["Median salary (USD)"] = top_roles["Median salary (USD)"].apply(lambda x: f"${x:,.0f}")
         st.dataframe(top_roles, hide_index=True, use_container_width=True)
 
     with col_b:
-        st.markdown("**Distribución por modalidad de trabajo**")
-        wm_counts = df_model["work_mode"].value_counts().reset_index()
-        wm_counts.columns = ["Modalidad", "Registros"]
+        st.markdown("**Country distribution**")
+        wm_counts = df_model["country"].value_counts().reset_index()
+        wm_counts.columns = ["Country", "Records"]
+        st.dataframe(wm_counts, hide_index=True, use_container_width=True)
+
+    with colc:
+        st.markdown("**Industry distribution**")
+        wm_counts = df_model["industry"].value_counts().reset_index()
+        wm_counts.columns = ["industry", "Records"]
         st.dataframe(wm_counts, hide_index=True, use_container_width=True)
