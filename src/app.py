@@ -1,11 +1,9 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import pickle
-import json
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics.pairwise import cosine_similarity
-import kagglehub
+import os
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -44,15 +42,11 @@ st.markdown("""
 # ─── Carga y preparación del modelo ──────────────────────────────────────────
 @st.cache_data(show_spinner="Cargando dataset…")
 def load_and_prepare():
-    path = kagglehub.dataset_download("mohankrishnathalla/global-ai-and-data-jobs-salary-dataset")
-    df = pd.read_csv(f"{path}/global_ai_jobs.csv")
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(base_dir, "..", "data", "processed", "df_model.csv")
+    df = pd.read_csv(csv_path)
 
-    df = df[df["year"] >= 2022].copy()
-    df.drop(columns=["id", "year", "bonus_usd", "interview_rounds", "job_openings",
-                     "company_rating", "economic_index", "layoff_risk", "ai_maturity_years",
-                     "offer_acceptance_rate", "tax_rate_percent", "cost_of_living_index",
-                     "vacation_days", "job_security_score", "company_funding_billion",
-                     "promotion_speed"], inplace=True)
+
     df = df[df["ai_adoption_score"] >= 20].copy()
 
     FEATURES_KNN = ["experience_years", "education_required", "ai_specialization",
