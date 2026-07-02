@@ -44,10 +44,10 @@ st.markdown("""
 def load_and_prepare():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     csv_path = os.path.join(base_dir, "..", "data", "processed", "df_model.csv")
-    df = pd.read_csv(csv_path)
+    df_model = pd.read_csv(csv_path)
 
 
-    df = df[df["ai_adoption_score"] >= 20].copy()
+    df = df_model[df_model["ai_adoption_score"] >= 20].copy()
 
     FEATURES_KNN = ["experience_years", "education_required", "ai_specialization",
                     "work_mode", "country", "industry", "weekly_hours"]
@@ -147,24 +147,64 @@ def calcular_skill_gap(user_profile, row):
     return gaps
 
 
-def recomendar(user_profile, top_n=3, peso_contenido=0.6, peso_colaborativo=0.4):
+def recomendar(
+    user_profile: dict,
+    df_model: pd.DataFrame,
+    top_n: int = 3,
+    peso_contenido: float = 0.6,
+    peso_colaborativo: float = 0.4
+) -> list[dict]:
+
+    # 1. Generar vector de usuario y obtener scores base
     user_vector = build_user_vector(user_profile)
     scores_cb = normalize(content_based_scores(user_vector))
     scores_cf = collaborative_scores(user_profile)
-    scores_hibrido = peso_contenido * scores_cb + peso_colaborativo * scores_cf
-    top_indices = np.argsort(scores_hibrido)[::-1][:top_n]
 
+    # 2. Normalizar los scores colaborativos
+    scores_cf = normalize(scores_cf)
+
+    # 3. Asegurar que los pesos sumen 1 y CALCULAR EL SCORE HÍBRIDO CORRECTAMENTE
+    total_peso = peso_contenido + peso_colaborativo
+    w_cb = peso_contenido / total_peso
+    w_cf = peso_colaborativo / total_peso
+
+    scores_hibrido = w_cb * scores_cb + w_cf * scores_cf
+
+    # 4. Seleccionar índices asegurando diversidad de roles
+    top_indices = np.argsort(scores_hibrido)[::-1]
+    
     resultados = []
+    roles_vistos = set()
+    idx_seleccionados = []
+    
+    # Primera pasada: Buscar roles estrictamente únicos
     for idx in top_indices:
+        rol = df_model.iloc[idx]["job_role"]
+        if rol not in roles_vistos:
+            roles_vistos.add(rol)
+            idx_seleccionados.append(idx)
+        if len(idx_seleccionados) >= top_n:
+            break
+
+    # Segunda pasada (de respaldo): Rellenar si no se alcanzó el top_n con únicos
+    if len(idx_seleccionados) < top_n:
+        for idx in top_indices:
+            if idx not in idx_seleccionados:
+                idx_seleccionados.append(idx)
+            if len(idx_seleccionados) >= top_n:
+                break
+
+    # 5. Construir la lista final de resultados
+    for idx in idx_seleccionados:
         row = df_model.iloc[idx]
         resultado = row.to_dict()
-        resultado["match_score_pct"] = round(float(scores_hibrido[idx]) * 100, 1)
-        resultado["content_score"] = round(float(scores_cb[idx]) * 100, 1)
-        resultado["collab_score"] = round(float(scores_cf[idx]) * 100, 1)
-        resultado["skill_gap"] = calcular_skill_gap(user_profile, row)
+        resultado['match_score_pct'] = round(float(scores_hibrido[idx]) * 100, 1)
+        resultado['content_score'] = round(float(scores_cb[idx]) * 100, 1)
+        resultado['collab_score'] = round(float(scores_cf[idx]) * 100, 1)
+        resultado['skill_gap'] = calcular_skill_gap(user_profile, row)
         resultados.append(resultado)
-    return resultados
 
+    return resultados
 # ─── UI ───────────────────────────────────────────────────────────────────────
 st.title("🤖 Tech Career Recommender")
 st.caption("Descubre qué puesto tech encaja mejor con tu perfil y cómo mejorar tu salario.")
@@ -210,9 +250,8 @@ with st.sidebar:
 
     top_n = st.slider("Number of recomendations", 1, 5, 3)
 
-    peso_cb = 1.00
-    peso_cf = 1.00
-
+    peso_cb = st.slider("Peso Content-Based", 0.0, 1.0, 0.6)
+    peso_cf = st.slider("Peso Collaborative", 0.0, 1.0, 0.4)
     buscar = st.button("🔍 Recomend", type="primary", use_container_width=True)
 
 # ─── Resultados ───────────────────────────────────────────────────────────────
@@ -228,9 +267,14 @@ if buscar:
     }
 
     with st.spinner("Buscando los mejores puestos para ti…"):
-        recomendaciones = recomendar(user, top_n=top_n,
-                                     peso_contenido=peso_cb,
-                                     peso_colaborativo=peso_cf)
+        # CORRECCIÓN: Pasar explícitamente todos los parámetros por nombre
+        recomendaciones = recomendar(
+            user_profile=user, 
+            df_model=df_model,
+            top_n=top_n,
+            peso_contenido=peso_cb,
+            peso_colaborativo=peso_cf
+        )
 
     st.subheader(f"🎯 Top {top_n} recomendations for your profile")
 
