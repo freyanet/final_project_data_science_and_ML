@@ -85,17 +85,31 @@ df_model, encoders, scaler, num_cols, cat_cols, enc_cols, feature_matrix = load_
 def build_user_vector(user_profile):
     user_num_raw = []
     for col in num_cols:
-        user_num_raw.append(float(user_profile.get(col, df_model[col].mean())))
+        # Si el dato viene del formulario (experiencia o horas), lo usamos.
+        if col in user_profile:
+            user_num_raw.append(float(user_profile[col]))
+        else:
+            # Para variables de salida del puesto (salario, riesgo, etc.),
+            # usamos 0.0 para no sesgar drásticamente la distancia hacia el promedio
+            user_num_raw.append(0.0)
+            
     user_num_scaled = scaler.transform([user_num_raw])[0]
 
     user_cat = []
     for col in cat_cols:
         le = encoders[col]
-        val = user_profile.get(col, df_model[col].mode()[0])
+        val = user_profile.get(col, None)
+        
+        # Si la columna categórica no está en el perfil (ej. company_size, experience_level), 
+        # tomamos la moda del dataset de manera segura
+        if val is None:
+            val = df_model[col].mode()[0]
+            
         if val in le.classes_:
             user_cat.append(float(le.transform([val])[0]))
         else:
             user_cat.append(0.0)
+            
     return np.hstack([user_num_scaled, user_cat])
 
 
@@ -103,7 +117,7 @@ def normalize(arr):
     min_v, max_v = arr.min(), arr.max()
     if max_v > min_v:
         return (arr - min_v) / (max_v - min_v)
-    return np.ones_like(arr) * 0.5
+    return arr
 
 
 def content_based_scores(user_vector):
