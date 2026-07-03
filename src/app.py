@@ -141,127 +141,135 @@ def calcular_skill_gap(user_profile, row):
     gaps["salary_percentile"] = row["salary_percentile"]
     return gaps
 
-
-def content_based_scores(user_profile):
+def calcular_afinidad_perfil(user_profile, df):
     """
-    Calcula la similitud basándose estrictamente en las características que el usuario 
-    puede seleccionar en el formulario, evitando que las variables de salida distorsionen el score.
+    Mide qué tan bien encaja cada fila del dataset con el perfil actual del usuario,
+    permitiendo un margen de experiencia realista de máximo 2-3 años.
     """
-    # 1. Similitud Numérica (Años de experiencia y Horas semanales)
-    # Escalamos de forma manual y controlada en base a los rangos del formulario
     user_exp = float(user_profile.get("experience_years", 3))
     user_hours = float(user_profile.get("weekly_hours", 40))
     
-    dist_exp = np.abs(df_model["experience_years"] - user_exp) / 20.0
-    dist_hours = np.abs(df_model["weekly_hours"] - user_hours) / 30.0
+    # 1. Distancias numéricas base
+    dist_exp = np.abs(df["experience_years"] - user_exp) / 20.0
+    dist_hours = np.abs(df["weekly_hours"] - user_hours) / 30.0
     sim_num = 1.0 - ((dist_exp + dist_hours) / 2.0)
     
-    # 2. Similitud Categórica (Comparación exacta binaria elemento a elemento)
-    # Esto evita el comportamiento errático de LabelEncoder en distancias
+    # 2. Coincidencia de etiquetas duras (país, modalidad, especialización, educación)
     sim_cat = (
-        (df_model["ai_specialization"] == user_profile.get("ai_specialization", "")) * 2.0 + # Más peso a la especialización
-        (df_model["country"] == user_profile.get("country", "")) * 1.5 +                    # Más peso al país
-        (df_model["education_required"] == user_profile.get("education_required", "")) * 1.0 +
-        (df_model["work_mode"] == user_profile.get("work_mode", "")) * 1.0 +
-        (df_model["industry"] == user_profile.get("industry", "")) * 1.0
-    ) / 6.5 # Normalizamos por la suma de los pesos (2 + 1.5 + 1 + 1 + 1)
+        (df["country"] == user_profile.get("country", "")) * 2.0 +
+        (df["work_mode"] == user_profile.get("work_mode", "")) * 1.5 +
+        (df["industry"] == user_profile.get("industry", "")) * 1.0 +
+        (df["ai_specialization"] == user_profile.get("ai_specialization", "")) * 2.0 +
+        (df["education_required"] == user_profile.get("education_required", "")) * 1.5
+    ) / 8.0
 
-    # El score de contenido final es la combinación de ambos aspectos
-    return (sim_num * 0.3) + (sim_cat * 0.7)
-
-
-def collaborative_scores(user_profile):
-    """
-    Busca profesionales en tu mismo ecosistema (Especialización, Modalidad o Industria)
-    y prioriza los roles que ofrecen los mejores salarios promedio para ese grupo.
-    """
-    mask = (
-        (df_model["work_mode"] == user_profile.get("work_mode", "")) |
-        (df_model["industry"] == user_profile.get("industry", "")) |
-        (df_model["ai_specialization"] == user_profile.get("ai_specialization", ""))
-    )
-    similar_group = df_model[mask] if len(df_model[mask]) >= 5 else df_model
+    score_afinidad = (sim_num * 0.3) + (sim_cat * 0.7)
     
-    # 🌟 CAMBIO CLAVE: Agrupamos por SALARIO promedio en vez de satisfacción
-    role_salary_mean = similar_group.groupby("job_role")["salary_usd"].mean()
-    
-    # Mapeamos los salarios. Si un rol no está en el grupo similar, recibe el salario mínimo del dataset
-    collab_salary = df_model["job_role"].map(role_salary_mean).fillna(df_model["salary_usd"].min()).values.astype(float)
-    
-    return collab_salary
-
-def recomendar(
-    user_profile: dict,
-    df_model: pd.DataFrame,
-    top_n: int = 3,
-    peso_contenido: float = 0.6,
-    peso_colaborativo: float = 0.4
-) -> list[dict]:
-
-    # 1. Calcular scores base directo sin pasar por matrices corruptas
-    scores_cb = normalize(content_based_scores(user_profile))
-    scores_cf = normalize(collaborative_scores(user_profile))
-
-    # 2. Calcular Score Híbrido
-    total_peso = peso_contenido + peso_colaborativo
-    w_cb = peso_contenido / total_peso
-    w_cf = peso_colaborativo / total_peso
-    scores_hibrido = w_cb * scores_cb + w_cf * scores_cf
-
-    # 3. Penalización estricta por Experiencia Faltante (Filtro duro)
-    user_exp = float(user_profile.get("experience_years", 0))
-    for idx in range(len(scores_hibrido)):
-        row_exp = float(df_model.iloc[idx]["experience_years"])
+    # Permitimos un margen de hasta 2-3 años adicionales. Si pide más de eso, 
+    # la penalización se vuelve destructiva para sacarlo del Top 3.
+    for idx in score_afinidad.index:
+        row_exp = float(df.loc[idx, "experience_years"])
         if row_exp > user_exp:
             gap = row_exp - user_exp
-            # Penalización severa automática para evitar que aparezcan puestos inalcanzables
-            scores_hibrido[idx] -= (gap * 0.15) 
-            scores_hibrido[idx] = max(0.0, scores_hibrido[idx])
+            if gap <= 3.0:
+                # Penalización leve por estar ligeramente arriba (es un salto alcanzable)
+                score_afinidad.loc[idx] -= (gap * 0.05)
+            else:
+                # Penalización masiva si el puesto exige demasiados años más
+                score_afinidad.loc[idx] -= (gap * 0.25)
+            
+    return score_afinidad.clip(lower=0.0)
 
-    # 4. Crear dataframe de evaluación temporal
+
+def recomendar(user_profile: dict, df_model: pd.DataFrame, top_n: int = 3, **kwargs) -> list[dict]:
+    """
+    Genera el top de recomendaciones:
+    - Puestos 1 al 3: Encaje con perfil actual (permitiendo máximo +3 años de exp), ordenados por mejor salario.
+    - Puestos 4 y 5: Puestos con UPGRADE de educación/especialización que pagan más, manteniendo el límite de experiencia.
+    """
     df_temp = df_model.copy()
-    df_temp["_score_hibrido"] = scores_hibrido
-    df_temp["_score_cb"] = scores_cb
-    df_temp["_score_cf"] = scores_cf
-    df_temp["_original_idx"] = df_model.index
-
-    # 5. Agrupar por rol para forzar la diversidad real
-    df_mejores_por_rol = (
-        df_temp.sort_values(by="_score_hibrido", ascending=False)
+    user_exp = float(user_profile.get("experience_years", 3))
+    
+    # Añadimos una columna índice original antes de cualquier filtrado para no perder el rastro
+    df_temp["_original_idx"] = df_temp.index
+    
+    # Calcular afinidad para todo el dataset
+    df_temp["_score_afinidad"] = calcular_afinidad_perfil(user_profile, df_temp)
+    
+    # ─── FASE 1: TRABAJOS DE ENCAJE DIRECTO (Puestos 1 al 3) ───
+    # Filtramos de forma estricta: afinidad aceptable y máximo 3 años por encima de la experiencia del usuario
+    df_filtrado_directo = df_temp[
+        (df_temp["_score_afinidad"] >= 0.4) & 
+        (df_temp["experience_years"] <= user_exp + 3.0)
+    ]
+    
+    df_encaje_directo = (
+        df_filtrado_directo.sort_values(by=["_score_afinidad", "salary_usd"], ascending=[False, False])
         .groupby("job_role")
-        .first() 
+        .first()
         .reset_index()
+        .sort_values(by="salary_usd", ascending=False)
     )
-
-    # 6. Extraer el top definitivo de roles ordenados de manera dinámica
-    df_top_roles = df_mejores_por_rol.sort_values(by="_score_hibrido", ascending=False).head(top_n)
-
-    # 7. Construcción del output
+    
+    top_directo = df_encaje_directo.head(3)
+    roles_seleccionados = set(top_directo["job_role"].unique()) if not top_directo.empty else set()
+    
+    # ─── FASE 2: UPGRADES ASPIRACIONALES (Puestos 4 y 5) ───
+    top_aspiracional = pd.DataFrame()
+    if top_n > 3 and not top_directo.empty:
+        max_salario_directo = top_directo["salary_usd"].max()
+        
+        # Buscamos puestos que paguen MÁS, que NO estén repetidos en el top 3,
+        # pero respetando estrictamente que NO superen en más de 3 años la experiencia del usuario
+        df_potenciales_upgrades = df_temp[
+            (~df_temp["job_role"].isin(roles_seleccionados)) & 
+            (df_temp["salary_usd"] > max_salario_directo) &
+            (df_temp["experience_years"] <= user_exp + 3.0)
+        ].copy()
+        
+        if not df_potenciales_upgrades.empty:
+            df_aspiracionales_unicos = (
+                df_potenciales_upgrades.sort_values(by="salary_usd", ascending=False)
+                .groupby("job_role")
+                .first()
+                .reset_index()
+            )
+            top_aspiracional = df_aspiracionales_unicos.head(top_n - 3)
+            
+    # Combinar ambas listas respetando el orden
+    df_final_recomendaciones = pd.concat([top_directo, top_aspiracional], ignore_index=True)
+    
+    # ─── FASE 3: CONSTRUCCIÓN DE LA RESPUESTA PARA STREAMLIT ───
     resultados = []
-    for _, row in df_top_roles.iterrows():
+    for i, row in df_final_recomendaciones.iterrows():
         resultado = row.to_dict()
-        resultado['match_score_pct'] = round(float(resultado['_score_hibrido']) * 100, 1)
-        resultado['content_score'] = round(float(resultado['_score_cb']) * 100, 1)
-        resultado['collab_score'] = round(float(resultado['_score_cf']) * 100, 1)
+        
+        resultado['match_score_pct'] = round(float(resultado['_score_afinidad']) * 100, 1)
+        resultado['content_score'] = round(float(resultado['_score_afinidad']) * 100, 1)
+        resultado['collab_score'] = 100.0 
+        
+        resultado['es_aspiracional'] = (i >= 3)
         
         idx_original = resultado["_original_idx"]
-        for k in ["_score_hibrido", "_score_cb", "_score_cf", "_original_idx"]:
+        for k in ["_score_afinidad", "_score_cf", "_original_idx"]:
             resultado.pop(k, None)
             
         row_original = df_model.loc[idx_original]
         resultado['skill_gap'] = calcular_skill_gap(user_profile, row_original)
         resultados.append(resultado)
-
+        
     return resultados
 # ─── UI ───────────────────────────────────────────────────────────────────────
 st.title("🤖 Tech Career Recommender")
-st.caption("Discover which tech job best suits your profile and maximize your career growth in the AI era.")
+st.caption("Discover which tech job best suits your profile and maximize your career growth in the AI era." \
+)
 
 st.divider()
 
 # Sidebar con el formulario
 with st.sidebar:
     st.header("📋 Your professional profile")
+    st.caption("For a better experience and recommendations, please fill out your profile and use 5 as number of recommendations.")
 
     exp_years = st.slider("Experience years", 0, 20, 3)
 
@@ -324,7 +332,7 @@ if buscar:
     }
 
     with st.spinner("Buscando los mejores puestos para ti…"):
-        # CORRECCIÓN: Pasar explícitamente todos los parámetros por nombre
+
         recomendaciones = recomendar(
             user_profile=user, 
             df_model=df_model,
@@ -337,8 +345,12 @@ if buscar:
 
     for i, rec in enumerate(recomendaciones, 1):
         gap = rec["skill_gap"]
+        
+    
+        tipo_puesto = "✨ RECOMANDATION" if i <= 3 else "🚀 UPGRADE YOUR PROFILE FOR A BETTER SALARY"
+        
         with st.expander(
-            f"#{i}  **{rec['job_role']}** — 💰 ${rec['salary_usd']:,.0f}/año",
+            f"#{i} {tipo_puesto} **{rec['job_role']}** — 💰 ${rec['salary_usd']:,.0f}/año",
             expanded=(i == 1)
         ):
             col1, col2, col3 = st.columns(3,vertical_alignment="center")
