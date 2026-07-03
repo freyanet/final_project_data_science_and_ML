@@ -255,7 +255,7 @@ def recomendar(
     return resultados
 # ─── UI ───────────────────────────────────────────────────────────────────────
 st.title("🤖 Tech Career Recommender")
-st.caption("Descubre qué puesto tech encaja mejor con tu perfil y cómo mejorar tu salario.")
+st.caption("Discover which tech job best suits your profile and maximize your career growth in the AI era.")
 
 st.divider()
 
@@ -302,14 +302,13 @@ with st.sidebar:
     peso_cb = 0.6
     peso_cf = 0.4
 
-    with st.popover("ℹ️ ¿Cómo calculamos tu afinidad?"):
+    with st.popover("ℹ️ How do we calculate your affinity?"):
         st.markdown(f"""
-        Utilizamos un **sistema híbrido de recomendación** balanceado automáticamente:
-        * **Afinidad por Perfil ({int(peso_cb*100)}%):** Analiza matemáticamente la coincidencia exacta de tus habilidades, tecnologías, modalidad y país con las vacantes.
-        * **Satisfacción del Mercado ({int(peso_cf*100)}%):** Cruza datos de profesionales similares en tu área para priorizar puestos con mejor balance vida-trabajo y felicidad laboral.
-        """)
+        We use a **hybrid recommendation system** automatically balanced:
+        * **Profile Affinity ({int(peso_cb*100)}%):** Mathematically analyzes the exact match of your skills, technologies, work mode, and country with job postings.
+        * **Market Satisfaction ({int(peso_cf*100)}%):** Cross-references data from similar professionals in your field to prioritize positions with the best work-life balance and job satisfaction.""")
     
-    st.write("") # Espaciado visual
+    st.write ("") # Espaciado visual
     buscar = st.button("🔍 Recomend", type="primary", use_container_width=True)
 
 # ─── Resultados ───────────────────────────────────────────────────────────────
