@@ -269,7 +269,7 @@ st.divider()
 # Sidebar con el formulario
 with st.sidebar:
     st.header("📋 Your professional profile")
-    st.caption("For a better experience and recommendations, please fill out your profile and use 5 as number of recommendations.")
+    st.caption("For a better experience and recommendations, please fill out your profile")
 
     exp_years = st.slider("Experience years", 0, 20, 3)
 
@@ -304,7 +304,7 @@ with st.sidebar:
 
     st.divider()
 
-    top_n = st.slider("Number of recomendations", 1, 5, 3)
+    top_n = st.slider("Number of recomendations", 5,7)
 
     # Definimos los pesos fijos internamente
     peso_cb = 0.6
@@ -342,6 +342,7 @@ if buscar:
         )
 
     st.subheader(f"🎯 Top {top_n} recomendations for your profile")
+    st.caption("The first three recommendations are the best fit for your current profile, while the others are aspirational positions that could pay more if you upgrade your skills or education.")
 
     for i, rec in enumerate(recomendaciones, 1):
         gap = rec["skill_gap"]
