@@ -359,7 +359,7 @@ with st.sidebar:
         * **Market Salary ({int(peso_cf*100)}%):** Cross-references data from similar professionals in your field to prioritize positions with the best salary.""")
     
     st.write ("") # Espaciado visual
-    buscar = st.button("🔍 Recomend", type="primary", use_container_width=True)
+    buscar = st.button("🔍 Recommend me", type="primary", use_container_width=True)
 
 # ─── Resultados ───────────────────────────────────────────────────────────────
 if buscar:
@@ -465,7 +465,7 @@ if buscar:
             
 
 else:
-    st.info("👈 Fill out your profile in the left panel and click **Recommend** to see your results.")
+    st.info("👈 Fill out your profile in the left panel and click **Recommend me** to see your results.")
 
     # Mostrar estadísticas generales mientras se espera
     st.subheader("📊 Labor market summary (2022–2026)")
