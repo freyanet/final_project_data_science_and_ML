@@ -361,6 +361,10 @@ with st.sidebar:
     st.write ("") # Espaciado visual
     buscar = st.button("🔍 Recommend me", type="primary", use_container_width=True)
 
+    st.divider()
+    st.caption("✨ Proyecto Final de Bootcamp — Data Science & ML")
+    st.caption("👩‍💻 Por Joseline Proaño y Valeria Urbina")
+
 # ─── Resultados ───────────────────────────────────────────────────────────────
 if buscar:
     user = {
@@ -500,3 +504,29 @@ else:
         wm_counts = df_model["industry"].value_counts().reset_index()
         wm_counts.columns = ["industry", "Records"]
         st.dataframe(wm_counts, hide_index=True, use_container_width=True)
+
+# ─── Pie de página / Marca de agua ──────────────────────────────────────────
+st.markdown("""
+<style>
+    .footer {
+        position: relative;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: transparent;
+        color: #8C4253; /* Tono Rosa Ash Oscuro acorde a tu tema claro */
+        text-align: center;
+        padding: 20px 0px 10px 0px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        border-top: 1px solid #E5C3C8; /* Línea divisoria suave */
+        margin-top: 50px;
+    }
+</style>
+
+<div class="footer">
+    🎓 Proyecto Final de Bootcamp de Data Science y Machine Learning <br>
+    <strong>Por: Joseline Proaño y Valeria Urbina</strong>
+</div>
+""", unsafe_allow_html=True)
