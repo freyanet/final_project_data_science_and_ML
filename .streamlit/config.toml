@@ -1,0 +1,15 @@
+[theme]
+# Color principal para botones, sliders activos, checkboxes y focos
+primaryColor = "#C07A8B"
+
+# Fondo secundario para la barra lateral (Sidebar) y contenedores
+secondaryBackgroundColor = "#F7EFF1"
+
+# Fondo principal de la aplicación (Blanco cálido suave)
+backgroundColor = "#FAFAFA"
+
+# Color del texto general (Gris oscuro suave para no cansar la vista)
+textColor = "#2B2124"
+
+# Tipografía de la app
+font = "sans serif"

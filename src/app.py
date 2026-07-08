@@ -17,25 +17,67 @@ st.set_page_config(
 # ─── Estilos ──────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-    .rec-card {
-        background: #1e1e2e;
-        border: 1px solid #313244;
-        border-radius: 12px;
-        padding: 1.2rem 1.5rem;
-        margin-bottom: 1rem;
+    /* 1. Fondo principal y texto general */
+    .stApp {
+        background-color: #FAFAFA !important;
+        color: #2B2124 !important;
     }
-    .match-badge {
-        background: #a6e3a1;
-        color: #1e1e2e;
-        font-weight: 700;
-        border-radius: 20px;
-        padding: 2px 10px;
-        font-size: 0.85rem;
+
+    /* 2. Barra lateral (Sidebar) con tono rosa pastel muy claro */
+    [data-testid="stSidebar"] {
+        background-color: #F4E8EA !important;
+        border-right: 1px solid #E5C3C8 !important;
     }
-    .gap-ok  { color: #a6e3a1; }
-    .gap-bad { color: #f38ba8; }
-    .metric-label { color: #cdd6f4; font-size: 0.8rem; }
-    .metric-value { font-size: 1.1rem; font-weight: 600; }
+
+    /* 3. Botones (Recommend) en Rosa Ash Vivo con texto claro */
+    div.stButton > button:first-child {
+        background-color: #C07A8B !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        font-size: 1rem !important;
+        transition: all 0.3s ease;
+    }
+    
+    div.stButton > button:first-child:hover {
+        background-color: #A96273 !important;
+        color: #FFFFFF !important;
+        box-shadow: 0 4px 12px rgba(192, 122, 139, 0.3);
+    }
+
+    /* 4. Tarjetas / Expanders de recomendaciones en Fondo Claro */
+    .streamlit-expanderHeader {
+        background-color: #FFFFFF !important;
+        border-radius: 8px !important;
+        color: #8C4253 !important;
+        border: 1px solid #E5C3C8 !important;
+        font-weight: 600 !important;
+    }
+    
+    .streamlit-expanderContent {
+        background-color: #FAF4F5 !important;
+        border: 1px solid #E5C3C8 !important;
+        border-top: none !important;
+        border-radius: 0 0 8px 8px !important;
+    }
+
+    /* 5. Títulos y métricas destacadas en Rosa Ceniza Oscuro */
+    h1, h2, h3, [data-testid="stMetricValue"] {
+        color: #8C4253 !important;
+    }
+
+    /* 6. Sliders en tono rosa */
+    div[data-baseweb="slider"] div {
+        color: #C07A8B !important;
+    }
+
+    /* 7. Tablas / Dataframes estilo claro */
+    .stDataFrame {
+        border: 1px solid #E5C3C8 !important;
+        border-radius: 8px !important;
+        background-color: #FFFFFF !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -348,7 +390,7 @@ if buscar:
         gap = rec["skill_gap"]
         
     
-        tipo_puesto = "✨ RECOMANDATION" if i <= 3 else "🚀 UPGRADE YOUR PROFILE FOR A BETTER SALARY"
+        tipo_puesto = "✨ RECOMENDATION" if i <= 3 else "🚀 UPGRADE YOUR PROFILE FOR A BETTER SALARY"
         
         with st.expander(
             f"#{i} {tipo_puesto} **{rec['job_role']}** — 💰 ${rec['salary_usd']:,.0f}/año",
