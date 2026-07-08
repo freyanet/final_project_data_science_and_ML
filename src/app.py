@@ -303,7 +303,7 @@ def recomendar(user_profile: dict, df_model: pd.DataFrame, top_n: int = 3, **kwa
     return resultados
 # ─── UI ───────────────────────────────────────────────────────────────────────
 st.title("🤖 Tech Career Recommender")
-st.caption("Discover which tech job best suits your profile and maximize your career growth in the AI era." \
+st.caption("Find out which tech job best matches your profile and maximise your career growth in the AI era." \
 )
 
 st.divider()
@@ -384,7 +384,7 @@ if buscar:
         )
 
     st.subheader(f"🎯 Top {top_n} recomendations for your profile")
-    st.caption("The first three recommendations are the best fit for your current profile, while the others are aspirational positions that could pay more if you upgrade your skills or education.")
+    st.caption("The first three recommendations are the best fit for your current profile. The others are more aspirational positions that could offer higher pay if you upgrade your skills or education.")
 
     for i, rec in enumerate(recomendaciones, 1):
         gap = rec["skill_gap"]
@@ -425,7 +425,7 @@ if buscar:
                 st.metric("😊 Employee satisfaction", f"{int(rec['employee_satisfaction'])}%", help="This percentage indicates the satisfaction that employees usually have in this type of role, taking into account all the metrics mentioned.")
 
             st.divider()
-            st.markdown("**🔍 Skill Gap — what separates you from this position:**")
+            st.markdown("**🔍 Skill Gap —  what is holding you back from this position?**")
             
 
             g1, g2, g3, g4= st.columns(4)
@@ -471,9 +471,9 @@ else:
     st.subheader("📊 Labor market summary (2022–2026)")
     st.warning("The recommendations are based on surveys conducted between 2022 and 2026 and do not guarantee hiring for the recommended roles or the salary shown.")
     c1, c2, c3 = st.columns(3)
-    c1.metric("Records analyzed", f"{len(df_model):,}")
-    c2.metric("Unique roles", df_model["job_role"].nunique())
-    c3.metric("Median salary", f"${df_model['salary_usd'].mean():,.0f}")
+    c1.metric("**Records analyzed**", f"{len(df_model):,}")
+    c2.metric("**Unique job roles**", df_model["job_role"].nunique())
+    c3.metric("**Median salary**", f"${df_model['salary_usd'].mean():,.0f}")
 
     col_a, col_b, colc = st.columns(3)
     with col_a:
@@ -485,7 +485,7 @@ else:
             .head(10)
             .reset_index()
         )
-        top_roles.columns = ["Rol", "Median salary (USD)"]
+        top_roles.columns = ["Job Role", "Median salary (USD)"]
         top_roles["Median salary (USD)"] = top_roles["Median salary (USD)"].apply(lambda x: f"${x:,.0f}")
         st.dataframe(top_roles, hide_index=True, use_container_width=True)
 
