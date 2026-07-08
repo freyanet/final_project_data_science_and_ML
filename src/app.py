@@ -349,14 +349,14 @@ with st.sidebar:
     top_n = st.slider("Number of recomendations", 5,7)
 
     # Definimos los pesos fijos internamente
-    peso_cb = 0.6
-    peso_cf = 0.4
+    peso_cb = 0.8
+    peso_cf = 0.2
 
     with st.popover("ℹ️ How do we calculate your affinity?"):
         st.markdown(f"""
         We use a **hybrid recommendation system** automatically balanced:
         * **Profile Affinity ({int(peso_cb*100)}%):** Mathematically analyzes the exact match of your skills, technologies, work mode, and country with job postings.
-        * **Market Satisfaction ({int(peso_cf*100)}%):** Cross-references data from similar professionals in your field to prioritize positions with the best work-life balance and job satisfaction.""")
+        * **Market Salary ({int(peso_cf*100)}%):** Cross-references data from similar professionals in your field to prioritize positions with the best salary.""")
     
     st.write ("") # Espaciado visual
     buscar = st.button("🔍 Recomend", type="primary", use_container_width=True)
