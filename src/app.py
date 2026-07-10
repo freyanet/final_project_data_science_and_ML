@@ -223,6 +223,8 @@ def calcular_afinidad_perfil(user_profile, df):
     return score_afinidad.clip(lower=0.0)
 
 
+
+
 def recomendar(user_profile: dict, df_model: pd.DataFrame, top_n: int = 3, **kwargs) -> list[dict]:
     """
     Genera el top de recomendaciones:
@@ -237,16 +239,32 @@ def recomendar(user_profile: dict, df_model: pd.DataFrame, top_n: int = 3, **kwa
     
     # Calcular afinidad para todo el dataset
     df_temp["_score_afinidad"] = calcular_afinidad_perfil(user_profile, df_temp)
+
+    # -------------------------------
+    # COMPONENTE COLABORATIVO (20%)
+    # -------------------------------
+    df_temp["_score_cf"] = (
+        normalize(df_temp["employee_satisfaction"]) * 0.35
+        + normalize(df_temp["career_growth_score"]) * 0.30
+        + normalize(df_temp["work_life_balance_score"]) * 0.20
+        + normalize(df_temp["salary_percentile"]) * 0.15
+    )
+
+    # Score híbrido 80% contenido + 20% colaborativo
+    df_temp["_score_final"] = (
+        0.80 * df_temp["_score_afinidad"]
+        + 0.20 * df_temp["_score_cf"]
+    )
     
     # ─── FASE 1: TRABAJOS DE ENCAJE DIRECTO (Puestos 1 al 3) ───
     # Filtramos de forma estricta: afinidad aceptable y máximo 3 años por encima de la experiencia del usuario
     df_filtrado_directo = df_temp[
-        (df_temp["_score_afinidad"] >= 0.4) & 
-        (df_temp["experience_years"] <= user_exp + 3.0)
-    ]
+    (df_temp["_score_final"] >= 0.4) &
+    (df_temp["experience_years"] <= user_exp + 3.0)
+]
     
     df_encaje_directo = (
-        df_filtrado_directo.sort_values(by=["_score_afinidad", "salary_usd"], ascending=[False, False])
+        df_filtrado_directo.sort_values(by=["_score_final", "salary_usd"], ascending=[False, False])
         .groupby("job_role")
         .first()
         .reset_index()
@@ -286,14 +304,25 @@ def recomendar(user_profile: dict, df_model: pd.DataFrame, top_n: int = 3, **kwa
     for i, row in df_final_recomendaciones.iterrows():
         resultado = row.to_dict()
         
-        resultado['match_score_pct'] = round(float(resultado['_score_afinidad']) * 100, 1)
-        resultado['content_score'] = round(float(resultado['_score_afinidad']) * 100, 1)
-        resultado['collab_score'] = 100.0 
-        
-        resultado['es_aspiracional'] = (i >= 3)
+        resultado["match_score_pct"] = round(
+            float(resultado["_score_final"]) * 100, 1
+        )
+
+        resultado["content_score"] = round(
+            float(resultado["_score_afinidad"]) * 100, 1
+        )
+
+        resultado["collab_score"] = round(
+            float(resultado["_score_cf"]) * 100, 1
+        )
         
         idx_original = resultado["_original_idx"]
-        for k in ["_score_afinidad", "_score_cf", "_original_idx"]:
+        for k in [
+            "_score_afinidad",
+            "_score_cf",
+            "_score_final",
+            "_original_idx"
+        ]:
             resultado.pop(k, None)
             
         row_original = df_model.loc[idx_original]
