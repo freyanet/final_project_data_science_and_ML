@@ -1,112 +1,92 @@
-# Plantilla de Proyecto de Ciencia de Datos
+# Tech Career Recommender — Sistema de recomendación salarial para perfiles de IA y Data Science
 
-Esta plantilla está diseñada para impulsar proyectos de ciencia de datos proporcionando una configuración básica para conexiones de base de datos, procesamiento de datos, y desarrollo de modelos de aprendizaje automático. Incluye una organización estructurada de carpetas para tus conjuntos de datos y un conjunto de paquetes de Python predefinidos necesarios para la mayoría de las tareas de ciencia de datos.
+Proyecto Final de Bootcamp — Data Science & Machine Learning (4Geeks Academy)
+Por: Joseline Proaño y Valeria Urbina
 
-## Estructura
+## Descripción del proyecto
 
-El proyecto está organizado de la siguiente manera:
+Este proyecto desarrolla un sistema de recomendación para profesionales con perfiles tecnológicos (IA, Machine Learning, Data Science). A partir del perfil de un usuario — experiencia, formación, especialización en IA, modalidad de trabajo, industria, país y horas semanales — el sistema recomienda:
 
-- **`src/app.py`** → Script principal de Python donde correrá tu proyecto.
-- **`src/explore.ipynb`** → Notebook para exploración y pruebas. Una vez finalizada la exploración, migra el código limpio a `app.py`.
-- **`src/utils.py`** → Funciones auxiliares, como conexión a bases de datos.
-- **`requirements.txt`** → Lista de paquetes de Python necesarios.
-- **`models/`** → Contendrá tus clases de modelos SQLAlchemy.
-- **`data/`** → Almacena los datasets en diferentes etapas:
-  - **`data/raw/`** → Datos sin procesar.
-  - **`data/interim/`** → Datos transformados temporalmente.
-  - **`data/processed/`** → Datos listos para análisis.
+- **Puestos de encaje directo** (top 3): roles que se ajustan a su perfil actual, permitiendo un margen realista de hasta 3 años de experiencia por encima de la suya.
+- **Puestos aspiracionales** (posiciones 4 y 5): roles que pagan más que los de encaje directo, pensados como una meta de mejora salarial alcanzable si el usuario amplía su formación o especialización.
 
+El recomendador combina dos señales en un **score híbrido**:
 
-## ⚡ Configuración Inicial en Codespaces (Recomendado)
+1. **Score de contenido** (`calcular_afinidad_perfil`): mide el encaje directo entre el perfil del usuario y cada puesto, combinando similitud numérica (experiencia, horas semanales) y coincidencia de variables categóricas (país, modalidad, especialización, industria, educación).
+2. **Score colaborativo**: calidad objetiva del puesto, calculada a partir de la satisfacción del empleado, el crecimiento de carrera, el equilibrio vida-trabajo y el percentil salarial, todos normalizados.
 
-No es necesario realizar ninguna configuración manual, ya que **Codespaces se configura automáticamente** con los archivos predefinidos que ha creado la academia para ti. Simplemente sigue estos pasos:
+Ambos se combinan con un reparto **80% contenido / 20% colaborativo**, validado mediante un grid search documentado en el notebook (ver sección de Modelado y Evaluación).
 
-1. **Espera a que el entorno se configure automáticamente**.
-   - Todos los paquetes necesarios y la base de datos se instalarán por sí mismos.
-   - El `username` y `db_name` creados automáticamente están en el archivo **`.env`** en la raíz del proyecto.
-2. **Una vez que Codespaces esté listo, puedes comenzar a trabajar inmediatamente**.
+## Dataset
 
+Se utiliza el dataset [Global AI & Data Jobs Salary Dataset](https://www.kaggle.com/datasets/mohankrishnathalla/global-ai-and-data-jobs-salary-dataset) de Kaggle, con información salarial y profesional de puestos relacionados con IA y Data Science a nivel global (2020-2026). Para el modelado se filtró a los registros de 2022 en adelante, con el objetivo de reflejar mejor las condiciones actuales del mercado laboral tecnológico.
 
-## 💻 Configuración en Local (Solo si no puedes usar Codespaces)
+## Estructura del repositorio
 
-**Prerrequisitos**
+```
+├── data/
+│   └── processed/          # Datasets procesados (df_model.csv, df_encoded.csv)
+├── models/                 # Artefactos serializados (scaler.pkl, enc_cols.pkl)
+├── src/
+│   ├── explore.ipynb        # Notebook completo: EDA, preprocesamiento, modelado y evaluación
+│   └── app.py                # Aplicación Streamlit del recomendador
+├── requirements.txt
+└── README.md
+```
 
-Asegúrate de tener Python 3.11+ instalado en tu máquina. También necesitarás pip para instalar los paquetes de Python.
+## Cómo ejecutar el proyecto
 
-**Instalación**
-
-Clona el repositorio del proyecto en tu máquina local.
-
-Navega hasta el directorio del proyecto e instala los paquetes de Python requeridos:
+### 1. Clonar el repositorio e instalar dependencias
 
 ```bash
+git clone <url-del-repo>
+cd <nombre-del-repo>
 pip install -r requirements.txt
 ```
 
-**Crear una base de datos (si es necesario)**
+### 2. Notebook de análisis y modelado
 
-Crea una nueva base de datos dentro del motor Postgres personalizando y ejecutando el siguiente comando: 
+Abrir `src/explore.ipynb` para revisar el proceso completo: obtención y exploración del dataset, justificación de las decisiones de preprocesamiento, construcción y evolución del modelo de recomendación, y evaluación con métricas (Precision@K, catalog coverage, profile match rate, grid search de pesos del híbrido).
 
-```bash
-$ psql -U postgres -c "DO \$\$ BEGIN 
-    CREATE USER mi_usuario WITH PASSWORD 'mi_contraseña'; 
-    CREATE DATABASE mi_base_de_datos OWNER mi_usuario; 
-END \$\$;"
-```
-Conéctate al motor Postgres para usar tu base de datos, manipular tablas y datos: 
+### 3. Ejecutar la aplicación
 
 ```bash
-$ psql -U mi_usuario -d mi_base_de_datos
+streamlit run src/app.py
 ```
 
-¡Una vez que estés dentro de PSQL podrás crear tablas, hacer consultas, insertar, actualizar o eliminar datos y mucho más!
+La app también está desplegada en **Streamlit Community Cloud**: *[añadir aquí el enlace de la app desplegada]*.
 
-**Variables de entorno**
+## Metodología
 
-Crea un archivo .env en el directorio raíz del proyecto para almacenar tus variables de entorno, como tu cadena de conexión a la base de datos:
+El proyecto siguió el flujo de trabajo habitual de un proyecto de Data Science: comprensión y exploración de los datos, preprocesamiento, iteración sobre distintos enfoques de modelado, y evaluación cuantitativa antes de llegar a la versión final desplegada.
 
-```makefile
-DATABASE_URL="postgresql://<USUARIO>:<CONTRASEÑA>@<HOST>:<PUERTO>/<NOMBRE_BD>"
+Un aspecto relevante del proceso fue la **evolución iterativa del modelo de recomendación**:
 
-#example
-DATABASE_URL="postgresql://mi_usuario:mi_contraseña@localhost:5432/mi_base_de_datos"
-```
+1. Un primer enfoque basado en similitud del coseno sobre una matriz de features (incluyendo categóricas codificadas con `LabelEncoder`) se descartó al detectar que introducía relaciones artificiales entre categorías sin orden real.
+2. Se sustituyó por un modelo híbrido con score de contenido y score colaborativo (basado en salario medio de perfiles similares), pero este último sesgaba las recomendaciones hacia los roles mejor pagados independientemente del ajuste real al perfil.
+3. La versión final combina un score de contenido explícito e interpretable (`calcular_afinidad_perfil`) con un score colaborativo rediseñado en torno a la calidad del puesto (satisfacción, crecimiento, equilibrio vida-trabajo, percentil salarial), evitando el sesgo hacia el salario absoluto.
 
-## Ejecutando la Aplicación
+El detalle completo de esta evolución, con la justificación de cada decisión, está documentado en `src/explore.ipynb`.
 
-Para ejecutar la aplicación, ejecuta el script app.py desde la raíz del directorio del proyecto:
+## Métricas de evaluación
 
-```bash
-python src/app.py
-```
+El sistema se evalúa con tres métricas complementarias:
 
-## Añadiendo Modelos
+- **Precision@K (leave-one-out):** ¿recupera el sistema el rol real de un perfil cuando se le presenta como usuario nuevo?
+- **Catalog coverage:** ¿el sistema recomienda de forma diversa entre todos los roles disponibles, o repite siempre los mismos?
+- **Profile match rate:** de las recomendaciones generadas, ¿cuánto respetan las preferencias declaradas del usuario (modalidad, experiencia, especialización, educación)?
 
-Para añadir clases de modelos SQLAlchemy, crea nuevos archivos de script de Python dentro del directorio models/. Estas clases deben ser definidas de acuerdo a tu esquema de base de datos.
+Los resultados detallados, junto con el grid search que valida el reparto 80/20 del score híbrido, están en `src/explore.ipynb`.
 
-Definición del modelo de ejemplo (`models/example_model.py`):
+## Limitaciones y trabajo futuro
 
-```py
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import String
-from sqlalchemy.orm import Mapped, mapped_column
+- **Integración de ofertas de empleo en tiempo real**: sustituir o complementar el dataset estático actual con conexión a APIs de portales de empleo (LinkedIn, Indeed, InfoJobs, etc.), de forma que las recomendaciones reflejen vacantes activas.
+- **Ampliación de la personalización**: incorporar nuevas preferencias del usuario (tamaño de empresa, tolerancia al riesgo de automatización, prioridad salario vs. equilibrio vida-trabajo, sector específico) para un perfil de entrada más rico.
+- **Cobertura de perfiles junior y entry-level**: ajustar la lógica de afinidad y los filtros del recomendador para usuarios con muy poca o ninguna experiencia, un segmento que el diseño actual puede no cubrir bien.
 
-Base = declarative_base()
+## Autoras
 
-class ExampleModel(Base):
-    __tablename__ = 'example_table'
-    id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(unique=True)
-```
+- Joseline Proaño
+- Valeria Urbina
 
-## Trabajando con Datos
-
-Puedes colocar tus conjuntos de datos brutos en el directorio data/raw, conjuntos de datos intermedios en data/interim, y los conjuntos de datos procesados listos para el análisis en data/processed.
-
-Para procesar datos, puedes modificar el script app.py para incluir tus pasos de procesamiento de datos, utilizando pandas para la manipulación y análisis de datos.
-
-## Contribuyentes
-
-Esta plantilla fue construida como parte del [Data Science and Machine Learning Bootcamp](https://4geeksacademy.com/us/coding-bootcamps/datascience-machine-learning) de 4Geeks Academy por [Alejandro Sanchez](https://twitter.com/alesanchezr) y muchos otros contribuyentes. Descubre más sobre [los programas BootCamp de 4Geeks Academy](https://4geeksacademy.com/us/programs) aquí.
-
-Otras plantillas y recursos como este se pueden encontrar en la página de GitHub de la escuela.
+Proyecto Final — Bootcamp de Data Science y Machine Learning, 4Geeks Academy España.
